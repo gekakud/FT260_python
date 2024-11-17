@@ -314,3 +314,53 @@ class Ft260py():
 
         return data_bytes
     
+    def get_uart_status(self) -> dict:
+        ''' Get UART status '''
+        # Offset Field Description
+        # Byte 0 Report ID 0xE0
+        # Byte 1 flow_ctrl 0: OFF, and switch UART pins to GPIO
+        # 1: RTS_CTS mode (GPIOB =>RTSN, GPIOE =>CTSN)
+        # 2: DTR_DSR mode (GPIOF =>DTRN, GPIOH => DSRN)
+        # 3: XON_XOFF (software flow control) 
+        # 4: No flow control mode
+        # Bytes 2–5 baud_rate UART baud rate, which is unsigned int, little-endian. e.g.:
+        # 9600 = 0x2580 => [0x80, 0x25, 0x00, 0x00]
+        # 19200 = 0x4B00 => [0x00, 0x4B, 0x00, 0x00]
+        # The FT260 UART supports baud rate range from 1200 to 12M.
+        # Byte 6 data_bit The number of data bits:
+        # 0x07: 7 data bits
+        # 0x08: 8 data bits
+        # Byte 7 parity 0: No parity
+        # 1: Odd parity. This means that the parity bit is set to either ‘1’ or ‘0’ 
+        # so that an odd number of 1’s are sent
+        # 2: Even parity. This means that the parity bit is set to either ‘1’ or ‘0’ 
+        # so that an even number of 1’s are sent
+        # 3: High parity. This simply means that the parity bit is always High
+        # 4: Low parity. This simply means that the parity bit is always Low
+        # Byte 8 stop_bit The number of stop bits:
+        # 0: one stop bit
+        # 2: two stop bits
+        # Byte 9 breaking When active the TXD line goes into ‘spacing’ state which causes a 
+        # break in the receiving UART.
+        # 0: no break
+        # 1: break
+
+        report = self.device.get_feature_report(0xE0, 100)
+        report_bytes = {
+            'report_id': 0,
+            'flow_ctrl': 1,
+            'data_bit': 6,
+            'parity': 7,
+            'stop_bit': 8,
+            'breaking': 9
+        }
+
+        # Extract each status flag from byte 1 of the report
+        uart_status = {
+            key: report[byte]
+            for key, byte in report_bytes.items()
+        }
+
+        baudrate = (report[2] | report[3] << 8 | report[4] << 16 | report[5] << 24)
+        uart_status['baud_rate'] = baudrate
+        return uart_status
