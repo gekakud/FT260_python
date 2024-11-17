@@ -6,8 +6,9 @@ import hid
 
 version = '1.0.0'
 # FTDI User Guide https://www.ftdichip.cn/Support/Documents/AppNotes/AN_394_User_Guide_for_FT260.pdf
+# FTDI Dev module https://ftdichip.com/products/umft260ev1a/
 
-class PyFt260():
+class Ft260py():
     ''' Python wrapper for the FTDI FT260 I²C master controller '''
     def __init__(self, VID=0, PID=0):
         self.VID = VID
