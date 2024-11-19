@@ -314,6 +314,28 @@ class Ft260py():
 
         return data_bytes
     
+    def baud_rate_to_little_endian(self, baud_rate):
+        """Convert a baud rate to a little-endian 4-byte array."""
+        byte_array = baud_rate.to_bytes(4, byteorder='little', signed=False)
+        return list(byte_array)
+
+    def set_uart_speed(self, baudrate:int = 230400):
+        # Offset Field Description
+        # Byte 0 Report ID 0xA1
+        # Byte 1 request 0x42: Set UART Baud Rate
+        # Byte 2 to
+        # byte 5
+        # baud_rate UART baud rate, which is unsigned int, little-endian. e.g. 
+        # 9600 = 0x2580 => [0x80, 0x25, 0x00, 0x00]
+        # 19200 = 0x4B00 => [0x00, 0x4B, 0x00, 0x00]
+        # 230400 = 0x00038400 => [0x84, 0x03, 0x00, 0x00]
+        # The FT260 UART supports baud rate range from 1200 to 12M.
+
+        baudrate_bytes = self.baud_rate_to_little_endian(baudrate)
+        data_bytes = bytes([0xA1, 0x42] + baudrate_bytes)
+        self.device.send_feature_report(data_bytes)
+            
+
     def get_uart_status(self) -> dict:
         ''' Get UART status '''
         # Offset Field Description
@@ -345,7 +367,7 @@ class Ft260py():
         # 0: no break
         # 1: break
 
-        report = self.device.get_feature_report(0xE0, 100)
+        report = self.device.get_feature_report(0xE0, 10)
         report_bytes = {
             'report_id': 0,
             'flow_ctrl': 1,
