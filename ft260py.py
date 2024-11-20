@@ -22,13 +22,12 @@ FLAG_STOP_AND_START = FLAG_START | FLAG_STOP
 
 class Ft260py():
     ''' Python wrapper for the FTDI FT260 I²C master controller '''
-    def __init__(self, VID=0, PID=0):
+    def __init__(self, VID=0, PID=0, path=None):
         self.VID = VID
         self.PID = PID
 
-        self.device = hid.Device(vid=VID, pid=PID)
-        # specify uart device with path
-        # self.device = hid.Device(vid=VID, pid=PID, path=b'\\\\?\\HID#VID_0403&PID_6030&MI_01#8&2e836aa1&0&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}')
+        # self.device = hid.Device(vid=VID, pid=PID)
+        self.device = hid.Device(vid=VID, pid=PID, path=path)
 
     def print_device_info(self):
         ''' Print device information '''
@@ -465,7 +464,7 @@ class Ft260py():
             # Split the buffer into complete messages
             while '\n' in buffer:
                 message, buffer = buffer.split('\n', 1)  # Split at the first newline
-                print(f"Complete message: {message.strip()}")  # Print the message
+                print(f"UART output: {message.strip()}")  # Print the message
 
     # TODO: This function does not work as expected. For some unknown reason, the device does not respond to the request
     def get_uart_status(self) -> dict:
