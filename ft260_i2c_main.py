@@ -16,23 +16,23 @@ print(ft260_dev.get_i2c_status())
 
 # write/read 1 byte as value test
 ft260_dev.write_byte(address=SLV_ADDR, value=253)
-ft260_dev.read_byte(SLV_ADDR, verbose=True)
+ft260_dev.i2c_read_byte(SLV_ADDR, verbose=True)
 
 for i in range(10):
     ft260_dev.write_byte_to_register(address=SLV_ADDR, register=0x5, value=i)
-    ft260_dev.read_byte_from_register(SLV_ADDR, 0x5, verbose=True)
+    ft260_dev.i2c_read_byte_from_register(SLV_ADDR, 0x5, verbose=True)
 
 # write/read 2 bytes as value test
 # 5002 is 0x138A
 # 13 8A is 19 138
 expected_value = 5002
 ft260_dev.write_2bytes_to_register(SLV_ADDR, 0x5, expected_value)
-actual_value = ft260_dev.read_2bytes_from_register(SLV_ADDR, 0x5, verbose=True)
+actual_value = ft260_dev.i2c_read_2bytes_from_register(SLV_ADDR, 0x5, verbose=True)
 if expected_value != actual_value:
     print("Error: 2 bytes read does not match 2 bytes written")
     raise Exception("Error: 2 bytes read does not match 2 bytes written")
-ft260_dev.read_byte_from_register(SLV_ADDR, 0x5, verbose=True)
-ft260_dev.read_byte_from_register(SLV_ADDR, 0x6, verbose=True)
+ft260_dev.i2c_read_byte_from_register(SLV_ADDR, 0x5, verbose=True)
+ft260_dev.i2c_read_byte_from_register(SLV_ADDR, 0x6, verbose=True)
 
 
 # write/read 4 bytes as value test
@@ -40,19 +40,19 @@ ft260_dev.read_byte_from_register(SLV_ADDR, 0x6, verbose=True)
 # 1D 9A 88 2F is 29 154 136 47
 expected_value = 496666671
 ft260_dev.write_4bytes_to_register(SLV_ADDR, 0x2, expected_value)
-actual_value = ft260_dev.read_4bytes_from_register(SLV_ADDR, 0x2, verbose=True)
+actual_value = ft260_dev.i2c_read_4bytes_from_register(SLV_ADDR, 0x2, verbose=True)
 if expected_value != actual_value:
     print("Error: 4 bytes read does not match 4 bytes written")
     raise Exception("Error: 4 bytes read does not match 4 bytes written")
 
-# ft260_dev.read_byte_from_register(SLV_ADDR, 0x2, verbose=True)
-# ft260_dev.read_byte_from_register(SLV_ADDR, 0x3, verbose=True)
-# ft260_dev.read_byte_from_register(SLV_ADDR, 0x4, verbose=True)
-# ft260_dev.read_byte_from_register(SLV_ADDR, 0x5, verbose=True)
+# ft260_dev.i2c_read_byte_from_register(SLV_ADDR, 0x2, verbose=True)
+# ft260_dev.i2c_read_byte_from_register(SLV_ADDR, 0x3, verbose=True)
+# ft260_dev.i2c_read_byte_from_register(SLV_ADDR, 0x4, verbose=True)
+# ft260_dev.i2c_read_byte_from_register(SLV_ADDR, 0x5, verbose=True)
 
 expected_value = 27987
 ft260_dev.write_4bytes_to_register(SLV_ADDR, 0x2, expected_value)
-actual_value = ft260_dev.read_4bytes_from_register(SLV_ADDR, 0x2, verbose=True)
+actual_value = ft260_dev.i2c_read_4bytes_from_register(SLV_ADDR, 0x2, verbose=True)
 if expected_value != actual_value:
     print("Error: 4 bytes read does not match 4 bytes written")
     raise Exception("Error: 4 bytes read does not match 4 bytes written")
@@ -62,7 +62,7 @@ if expected_value != actual_value:
 test_bytes_to_write = bytes([0xa7, 0x11, 0x99, 0x2f, 0x33])
 print(f'list:{list(test_bytes_to_write)}')
 ft260_dev.write_bytes_to_register(SLV_ADDR, 0x2, test_bytes_to_write)
-bytes_read = ft260_dev.read_bytes_from_register(SLV_ADDR, 0x2, len(test_bytes_to_write), verbose=True)
+bytes_read = ft260_dev.i2c_read_bytes_from_register(SLV_ADDR, 0x2, len(test_bytes_to_write), verbose=True)
 if test_bytes_to_write != bytes_read:
     print("Error: bytes read does not match bytes written")
     raise Exception("Error: bytes read does not match bytes written")
@@ -72,10 +72,10 @@ if test_bytes_to_write != bytes_read:
 test_bytes_to_write = bytes([0xa7, 0x11, 0x99, 0x2f, 0x33, 0x44, 0x41, 0x46])
 print(f'list:{list(test_bytes_to_write)}')
 ft260_dev.write_bytes_to_register(SLV_ADDR, 0x0, test_bytes_to_write)
-bytes_read = ft260_dev.read_bytes_from_register(SLV_ADDR, 0x0, len(test_bytes_to_write), verbose=True)
-# bytes_read = ft260_dev.read_bytes_from_register(SLV_ADDR, 0x0, 4, verbose=True)
-# bytes_read = ft260_dev.read_bytes_from_register(SLV_ADDR, 0x4, 4, verbose=True)
-# bytes_read = ft260_dev.read_bytes_from_register(SLV_ADDR, 0x2, 4, verbose=True)
+bytes_read = ft260_dev.i2c_read_bytes_from_register(SLV_ADDR, 0x0, len(test_bytes_to_write), verbose=True)
+# bytes_read = ft260_dev.i2c_read_bytes_from_register(SLV_ADDR, 0x0, 4, verbose=True)
+# bytes_read = ft260_dev.i2c_read_bytes_from_register(SLV_ADDR, 0x4, 4, verbose=True)
+# bytes_read = ft260_dev.i2c_read_bytes_from_register(SLV_ADDR, 0x2, 4, verbose=True)
 if test_bytes_to_write != bytes_read:
     print("Error: bytes read does not match bytes written")
     raise Exception("Error: bytes read does not match bytes written")
