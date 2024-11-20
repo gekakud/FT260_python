@@ -1,6 +1,7 @@
 # FT260py Library README
 ## Overview
-The FT260py library is a Python wrapper for the FTDI FT260 I²C master controller. It provides high-level methods to interact with I²C devices using the HID protocol. The library simplifies tasks such as configuring the FT260, setting I²C speed, and performing read/write operations with connected I²C slave devices.
+The FT260py library is a Python wrapper for the FTDI FT260 controller, supporting both I²C and UART communication protocols. It provides high-level methods to interact with connected devices using the HID protocol. The library simplifies tasks such as configuring the FT260, setting communication parameters, and performing read/write operations with connected peripherals.
+The library simplifies tasks such as configuring the FT260, setting I²C speed, and performing read/write operations with connected I²C slave devices. Same for UART.
 
 This library is built on the hid module, which interfaces with the hidapi library for HID communication.
 
@@ -10,6 +11,8 @@ This library is built on the hid module, which interfaces with the hidapi librar
 - Support for single-byte, multi-byte, and register-based I²C operations.
 - Get I²C bus status and error handling.
 - Reset and configure I²C speed dynamically.
+- Receive data over UART.
+- Support for handling newline-terminated messages.
 ## Requirements
 - Python 3.6 or later
 - FTDI FT260 device
@@ -20,7 +23,7 @@ Install the hidapi Python wrapper:
 ```bash
 pip install hid
 ```
-Usage
+### Usage example
 Initialize the Library
 ```python
 from ft260py import FT260py
