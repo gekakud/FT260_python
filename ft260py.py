@@ -2,7 +2,7 @@ import sys, os, time
 hidlib_path = os.path.abspath(os.path.join(os.path.dirname(__file__), 'hidapi/x64'))
 sys.path.append(hidlib_path)
 import hid
-
+from enum import IntEnum
 
 version = '1.0.0'
 # FTDI User Guide https://www.ftdichip.cn/Support/Documents/AppNotes/AN_394_User_Guide_for_FT260.pdf
@@ -20,9 +20,36 @@ FLAG_STOP = 0x04
 FLAG_STOP_AND_START = FLAG_START | FLAG_STOP
 
 
+class Gpio(IntEnum):
+    # name, bit position
+    P0 = 0
+    P1 = 1
+    P2 = 2
+    P3 = 3
+
+class GpioEx(IntEnum):
+    # name, bit position
+    PA = 0
+    PB = 1
+    PC = 2
+    PD = 3
+    PE = 4
+    PF = 5
+    PG = 6
+    PH = 7
+
+class GpioDir(IntEnum):
+    OUTPUT = 1
+    INPUT  = 0
+
+class GpioValue(IntEnum):
+    HIGH = 1
+    LOW  = 0
+
 class Ft260py():
     ''' Python wrapper for the FTDI FT260 I²C master controller '''
     def __init__(self, VID=0, PID=0, path=None):
+        ''' Initialize the FT260 device '''
         self.VID = VID
         self.PID = PID
 
@@ -603,7 +630,27 @@ class Ft260py():
         uart_status['baud_rate'] = baudrate
         return uart_status
     
-    def gpio_write(self):
+    def set_uart_mode(self, mode:int = 0):
+        ''' Set UART mode: 0: OFF, 1: RTS_CTS, 2: DTR_DSR, 3: XON_XOFF, 4: No flow control '''
+        # Offset Field Description
+        # Byte 0 Report ID 0xA1
+        # Byte 1 request 0x03: Set UART Mode
+        # Byte 2 enable_uart_mode 0: OFF, and switch UART pins to GPIO
+        # 1: RTS_CTS mode (GPIOB =>RTSN, GPIOE =>CTSN)
+        # 2: DTR_DSR mode (GPIOF =>DTRN, GPIOH => DSRN)
+        # 3: XON_XOFF (software flow control) 
+        # 4: No flow control mode
+
+        if mode not in [0, 1, 2, 3, 4]:
+            print(f"Invalid UART mode: {mode}. Supported modes: 0, 1, 2, 3, 4")
+            raise ValueError(f"Invalid UART mode: {mode}. Supported modes: 0, 1, 2, 3, 4")
+
+        # Construct data packet
+        data_bytes = bytes([0xA1, 0x03, mode])
+        self.device.send_feature_report(data_bytes)
+
+    def gpio_read_all_data(self) -> dict:
+        ''' Read the value of all GPIO pins '''
         # Offset Field Description
         # Byte 0 Report ID 0xB0
         # Byte 1 gpio value GPIO0–5 values
@@ -611,19 +658,11 @@ class Ft260py():
         # Byte 2 gpio dir GPIO0–5 directions:
         # 0b: input
         # 1b: output
-        # Byte 3 gpioEx 
-        # value
-        # GPIOA–H values
+        # Byte 3 gpioEx value, GPIOA–H values
         # GPIOA: bit[0], GPIOB: bit[1], GPIOC: bit[2], GPIOD: bit[3], GPIOE: bit[4], GPIOF: bit[5], GPIOG: bit[6], GPIOH: bit[7]
         # Byte 4 gpioEx dir GPIOA–H directions:
         # 0b: input
         # 1b: output
-
-        payload = bytes([0xB0, 0xFF, 0xFF, 0x0, 0xFF])
-        self.device.send_feature_report(payload)
-        ff = 4
-
-    def gpio_read(self):
         report = self.device.get_feature_report(0xB0, 100)
 
         report_bytes = {
@@ -635,10 +674,113 @@ class Ft260py():
         }
 
         # Extract each status flag from byte 1 of the report
-        system_status = {
+        gpio_status = {
             key: report[byte]
             for key, byte in report_bytes.items()
         }
 
-        print(f'gpio:{system_status}')
-        return system_status
+        # Initialize a big dictionary to hold all GPIO information
+        gpio_data = {}
+
+        # Populate data for GpioEx
+        for i, gpio in enumerate(GpioEx):
+            gpio_data[gpio.name] = {
+                "value": GpioValue((gpio_status["gpioEx_values"] >> i) & 1),
+                "direction": GpioDir((gpio_status["gpioEx_dirs"] >> i) & 1),
+            }
+
+        # Populate data for Gpio
+        for i, gpio in enumerate(Gpio):
+            gpio_data[gpio.name] = {
+                "value": GpioValue((gpio_status["gpio_values"] >> i) & 1),
+                "direction": GpioDir((gpio_status["gpio_dirs"] >> i) & 1),
+            }
+        
+        return gpio_data
+
+    def gpio_init(self, port:GpioEx|Gpio, direction:GpioDir):
+        ''' Initialize a GPIO pin as input or output '''
+        # Write a GPIO is 3-step process:
+        # 1. Get and store current GPIO status
+        # 2. Modify the desired GPIO direction
+        # 3. Write the modified GPIO status back to the device
+        report = self.device.get_feature_report(0xB0, 100)
+
+        report_bytes = {
+            'report_id': 0,
+            'gpio_values': 1,
+            'gpio_dirs': 2,
+            'gpioEx_values': 3,
+            'gpioEx_dirs': 4,
+        }
+
+        # 1. Get and store current GPIO status
+        gpio_status = {
+            key: report[byte]
+            for key, byte in report_bytes.items()
+        }
+
+        # 2. Modify the desired GPIO value
+        if port in GpioEx:
+            gpio_bits = gpio_status["gpioEx_dirs"]
+            bit_position = port.value
+            gpio_bits = (gpio_bits & ~(1 << bit_position)) | (direction.value << bit_position)
+            gpio_status["gpioEx_dirs"] = gpio_bits
+        elif port in Gpio:
+            gpio_bits = gpio_status["gpio_dirs"]
+            bit_position = port.value
+            gpio_bits = (gpio_bits & ~(1 << bit_position)) | (direction.value << bit_position)
+            gpio_status["gpio_dirs"] = gpio_bits
+        else:
+            print(f"Invalid GPIO port: {port}. Supported ports: {GpioEx}, {Gpio}")
+            raise ValueError(f"Invalid GPIO port: {port}. Supported ports: {GpioEx}, {Gpio}")
+
+        # 3. Write the modified GPIO status back to the device
+        payload = bytes([0xB0, gpio_status["gpio_values"], gpio_status["gpio_dirs"], gpio_status["gpioEx_values"], gpio_status["gpioEx_dirs"]])
+        self.device.send_feature_report(payload)
+
+    def gpio_write(self, port:GpioEx|Gpio, value:GpioValue):
+        ''' Write a value to a GPIO pin '''
+        # Write a GPIO is 3-step process:
+        # 1. Get and store current GPIO status
+        # 2. Modify the desired GPIO value
+        # 3. Write the modified GPIO status back to the device
+        report = self.device.get_feature_report(0xB0, 100)
+
+        report_bytes = {
+            'report_id': 0,
+            'gpio_values': 1,
+            'gpio_dirs': 2,
+            'gpioEx_values': 3,
+            'gpioEx_dirs': 4,
+        }
+
+        # 1. Get and store current GPIO status
+        gpio_status = {
+            key: report[byte]
+            for key, byte in report_bytes.items()
+        }
+
+        # 2. Modify the desired GPIO value
+        if port in GpioEx:
+            gpio_bits = gpio_status["gpioEx_values"]
+            bit_position = port.value
+            gpio_bits = (gpio_bits & ~(1 << bit_position)) | (value.value << bit_position)
+            gpio_status["gpioEx_values"] = gpio_bits
+        elif port in Gpio:
+            gpio_bits = gpio_status["gpio_values"]
+            bit_position = port.value
+            gpio_bits = (gpio_bits & ~(1 << bit_position)) | (value.value << bit_position)
+            gpio_status["gpio_values"] = gpio_bits
+        else:
+            print(f"Invalid GPIO port: {port}. Supported ports: {GpioEx}, {Gpio}")
+            raise ValueError(f"Invalid GPIO port: {port}. Supported ports: {GpioEx}, {Gpio}")
+
+        # 3. Write the modified GPIO status back to the device
+        payload = bytes([0xB0, gpio_status["gpio_values"], gpio_status["gpio_dirs"], gpio_status["gpioEx_values"], gpio_status["gpioEx_dirs"]])
+        self.device.send_feature_report(payload)
+
+    def gpio_read(self, gpio:GpioEx | Gpio) -> dict:
+        ''' Read the value of a GPIO pin '''
+        all_data = self.gpio_read_all_data()
+        return all_data[gpio.name]

@@ -13,6 +13,7 @@ This library is built on the hid module, which interfaces with the hidapi librar
 - Reset and configure I²C speed dynamically.
 - Receive data over UART.
 - Support for handling newline-terminated messages.
+- Init, Read, Write GPIO pins
 ## Requirements
 - Python 3.6 or later
 - FTDI FT260 device
