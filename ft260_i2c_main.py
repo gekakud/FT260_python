@@ -9,6 +9,7 @@ from ft260py import *
 SLV_ADDR = 0x50
 ft260_dev = Ft260py(VID=0x0403, PID=0x6030)
 
+print(ft260_dev.get_system_report())
 print(ft260_dev.get_i2c_status())
 ft260_dev.print_device_info()
 ft260_dev.set_i2c_speed(speed_hz=600000)

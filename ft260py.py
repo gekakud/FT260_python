@@ -38,6 +38,93 @@ class Ft260py():
         print(f'Product Name: {self.device.product}')
 
 
+    def get_system_report(self):
+        # Offset Field Description
+        # Byte 0 Report ID 0xA1
+        # Byte 1 chip_mode DCNF0 and DCNF1 pin status
+        # Bit0: the value of DCNF0
+        # Bit1: the value of DCNF1
+        # Byte 2 clk_ctl 0: 12 MHz
+        # 1: 24 MHz
+        # 2: 48 MHz
+        # Byte 3 suspend_status Suspend status
+        # 0: the FT260 is not suspended
+        # 1: the FT260 is suspended
+        # Byte 4 pwren_status PWREN status, which indicates the FT260 is ready 
+        # to use (after USB enumeration)
+        # 0: the FT260 is not ready to use, i.e. suspended, 
+        # or before USB enumeration.
+        # 1: the FT260 is ready to use.
+        # Byte 5 i2c_enable 0: I²C is disabled
+        # 1: I²C is enabled
+        # Byte 6 uart_mode 0: OFF; UART pins act as GPIO
+        # 1: RTS_CTS mode
+        # 2: DTR_DSR mode
+        # 3: XON_XOFF (software flow control)
+        # 4: No flow control mode
+        # Byte 7 hid_over_i2c_enable 0: The HID-over-I²C feature is not configured.
+        # 1: The HID-over-I²C feature is configured, and 
+        # the FT260 is operating as a HID-over-I²C bridge.
+        # Byte 8 gpio2_function 0: GPIO
+        # 1: SUSPOUT
+        # 2: PWREN# (active-low)
+        # 4: TX_LED
+        # Byte 9 gpioA_function 0: GPIO
+        # 3: TX_ACTIVE
+        # 4: TX_LED
+        # Byte 10 gpioG_function 0: GPIO
+        # 2: PWREN# (active-low)
+        # 5: RX_LED 
+        # 6: BCD_DET
+        # Byte 11 suspend_out_pol 0: Suspend output active-high
+        # 1: Suspend output active-low
+        # Byte 12 enable_wakeup_int 0: Disabled. The pin acts as GPIO3.
+        # 1: Enabled. The pin acts as wakeup/interrupt.
+        # Byte 13 intr_cond Bit [1:0]
+        # The trigger condition of the interrupt pin
+        # 00b: rising edge
+        # 01b: level (high)
+        # 10b: falling edge
+        # 11b: level (low)
+        # Bit [3:2]
+        # Interrupt level duration select. When the interrupt 
+        # level exceeds the trigger level for the specified 
+        # duration, the interrupt signal will be generated.
+        # 01b: 1 ms
+        # 10b: 5 ms
+        # 11b: 30 ms
+        # Byte 14 enable_power_saving If power saving mode is enabled and the FT260 is 
+        # idle for 5 seconds, it will switch the system clock 
+        # to 30 kHz to save power.
+        # 0: disable power saving 
+        # 1: enable power saving
+        # Byte 15 to 
+        # byte 25
+        # reserved reserved
+
+        report = self.device.get_feature_report(0xA1, 100)
+
+        report_bytes = {
+            'report_id': 0,
+            'chip_mode': 1,
+            'suspend_status': 3,
+            'pwren_status': 4,
+            'i2c_enable': 5,
+            'uart_mode': 6,
+            'gpio2_function': 8,
+            'gpioA_function': 9,
+            'gpioG_function': 10,
+            'suspend_out_pol': 11,
+        }
+
+        # Extract each status flag from byte 1 of the report
+        system_status = {
+            key: report[byte]
+            for key, byte in report_bytes.items()
+        }
+
+        return system_status
+
     def get_i2c_status(self) -> dict:
         ''' Get I2C status '''
         # Offset Field Description
