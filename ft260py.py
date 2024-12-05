@@ -37,7 +37,6 @@ class Ft260py():
         print(f'Device manufacturer: {self.device.manufacturer}')
         print(f'Product Name: {self.device.product}')
 
-
     def get_system_report(self):
         # Offset Field Description
         # Byte 0 Report ID 0xA1
@@ -553,7 +552,6 @@ class Ft260py():
                 message, buffer = buffer.split('\n', 1)  # Split at the first newline
                 print(f"UART output: {message.strip()}")  # Print the message
 
-    # TODO: This function does not work as expected. For some unknown reason, the device does not respond to the request
     def get_uart_status(self) -> dict:
         ''' Get UART status '''
         # Offset Field Description
@@ -585,7 +583,7 @@ class Ft260py():
         # 0: no break
         # 1: break
 
-        report = self.device.get_feature_report(0xE0, 10)
+        report = self.device.get_feature_report(0xE0, 100)
         report_bytes = {
             'report_id': 0,
             'flow_ctrl': 1,
@@ -604,3 +602,43 @@ class Ft260py():
         baudrate = (report[2] | report[3] << 8 | report[4] << 16 | report[5] << 24)
         uart_status['baud_rate'] = baudrate
         return uart_status
+    
+    def gpio_write(self):
+        # Offset Field Description
+        # Byte 0 Report ID 0xB0
+        # Byte 1 gpio value GPIO0–5 values
+        # GPIO0: bit[0], GPIO1: bit[1], GPIO2: bit[2], GPIO3: bit[3], GPIO2: bit[4], GPIO3: bit[5]
+        # Byte 2 gpio dir GPIO0–5 directions:
+        # 0b: input
+        # 1b: output
+        # Byte 3 gpioEx 
+        # value
+        # GPIOA–H values
+        # GPIOA: bit[0], GPIOB: bit[1], GPIOC: bit[2], GPIOD: bit[3], GPIOE: bit[4], GPIOF: bit[5], GPIOG: bit[6], GPIOH: bit[7]
+        # Byte 4 gpioEx dir GPIOA–H directions:
+        # 0b: input
+        # 1b: output
+
+        payload = bytes([0xB0, 0xFF, 0xFF, 0x0, 0xFF])
+        self.device.send_feature_report(payload)
+        ff = 4
+
+    def gpio_read(self):
+        report = self.device.get_feature_report(0xB0, 100)
+
+        report_bytes = {
+            'report_id': 0,
+            'gpio_values': 1,
+            'gpio_dirs': 2,
+            'gpioEx_values': 3,
+            'gpioEx_dirs': 4,
+        }
+
+        # Extract each status flag from byte 1 of the report
+        system_status = {
+            key: report[byte]
+            for key, byte in report_bytes.items()
+        }
+
+        print(f'gpio:{system_status}')
+        return system_status

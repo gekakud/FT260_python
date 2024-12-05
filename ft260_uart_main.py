@@ -25,5 +25,8 @@ for device in devices:
 # Specify the path of the device
 ft260_dev = Ft260py(VID=0x0403, PID=0x6030, path=path)
 ft260_dev.set_uart_speed(baudrate=230400)
+
+print(ft260_dev.get_uart_status())
+
 ft260_dev.uart_always_read()
     
