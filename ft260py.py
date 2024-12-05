@@ -649,6 +649,24 @@ class Ft260py():
         data_bytes = bytes([0xA1, 0x03, mode])
         self.device.send_feature_report(data_bytes)
 
+    def select_gpioG_function(self, function:int):
+        ''' Select GPIOG function: 0: GPIO, 2: PWREN#, 5: RX_LED, 6: BCD_DET '''
+        # Offset Field Description
+        # Byte 0 Report ID 0xA1
+        # Byte 1 request 0x09: Select GPIOG Function
+        # Byte 2 function The active function of the pin GPIOG:
+        # 0: GPIO
+        # 2: PWREN# (active-low)
+        # 5: RX_LED 
+        # 6: BCD_DET
+        if function not in [0, 2, 5, 6]:
+            print(f"Invalid GPIOG function: {function}. Supported functions: 0, 2, 5, 6")
+            raise ValueError(f"Invalid GPIOG function: {function}. Supported functions: 0, 2, 5, 6")
+
+        # Construct data packet
+        data_bytes = bytes([0xA1, 0x09, function])
+        self.device.send_feature_report(data_bytes)
+
     def gpio_read_all_data(self) -> dict:
         ''' Read the value of all GPIO pins '''
         # Offset Field Description
@@ -784,3 +802,11 @@ class Ft260py():
         ''' Read the value of a GPIO pin '''
         all_data = self.gpio_read_all_data()
         return all_data[gpio.name]
+
+    # TODO: temporary, experimental .remove this function
+    def gpio_write_all(self, val = 0xFF):
+        report = self.device.get_feature_report(0xB0, 100)
+
+        payload = bytes([0xB0, val, 0xFF, val, 0xFF])
+        self.device.send_feature_report(payload)
+        
