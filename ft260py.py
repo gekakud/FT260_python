@@ -47,7 +47,7 @@ class GpioValue(IntEnum):
     LOW  = 0
 
 class Ft260py():
-    ''' Python wrapper for the FTDI FT260 I²C master controller '''
+    ''' Python wrapper for the FTDI FT260 (I²C, UART and GPIO) '''
     def __init__(self, VID=0, PID=0, path=None):
         ''' Initialize the FT260 device '''
         self.VID = VID
@@ -190,8 +190,8 @@ class Ft260py():
         }
 
         # Calculate baud rate from LSB and MSB of the speed in bytes 2 and 3
-        baudrate_khz = (report[2] | report[3] << 8) * 1000  # Convert to Hz
-        i2c_status['baudrate_hz'] = baudrate_khz
+        baudrate_hz = (report[2] | report[3] << 8) * 1000  # kHz to Hz
+        i2c_status['baudrate_hz'] = baudrate_hz
 
         return i2c_status
 
@@ -401,7 +401,7 @@ class Ft260py():
         return response[2]
 
     def i2c_read_2bytes_from_register(self, address:int, register:int, verbose:bool = False) -> int:
-        ''' Read a single byte from a register on an I²C device '''
+        ''' Read two bytes (little-endian) from a register on an I²C device '''
         response = self.i2c_read_from_register(address, register, length=2)
 
         # Big-endian (index 2 is the most significant byte)
@@ -416,7 +416,7 @@ class Ft260py():
         return two_bytes_value_little_endian
 
     def i2c_read_4bytes_from_register(self, address:int, register:int, verbose:bool = False) -> int:
-        ''' Read a single byte from a register on an I²C device '''
+        ''' Read four bytes (little-endian) from a register on an I²C device '''
         response = self.i2c_read_from_register(address, register, length=4)
 
         # Construct a 4-byte integer in little-endian order
@@ -431,7 +431,7 @@ class Ft260py():
     def i2c_read_bytes_from_register(self, address:int, register:int, length:int, verbose:bool = False) -> bytes:
         ''' Read a specified number of bytes from a register on an I²C device '''
         response = self.i2c_read_from_register(address, register, length=length)
-        # reverse order of bytes to read in same order as written
+        # payload starts at index 2 (after report ID and length)
         data_bytes = response[2:2+length]
         data_bytes_list = list(data_bytes)
         if verbose:
@@ -739,12 +739,12 @@ class Ft260py():
         }
 
         # 2. Modify the desired GPIO value
-        if port in GpioEx:
+        if isinstance(port, GpioEx):
             gpio_bits = gpio_status["gpioEx_dirs"]
             bit_position = port.value
             gpio_bits = (gpio_bits & ~(1 << bit_position)) | (direction.value << bit_position)
             gpio_status["gpioEx_dirs"] = gpio_bits
-        elif port in Gpio:
+        elif isinstance(port, Gpio):
             gpio_bits = gpio_status["gpio_dirs"]
             bit_position = port.value
             gpio_bits = (gpio_bits & ~(1 << bit_position)) | (direction.value << bit_position)
@@ -780,12 +780,12 @@ class Ft260py():
         }
 
         # 2. Modify the desired GPIO value
-        if port in GpioEx:
+        if isinstance(port, GpioEx):
             gpio_bits = gpio_status["gpioEx_values"]
             bit_position = port.value
             gpio_bits = (gpio_bits & ~(1 << bit_position)) | (value.value << bit_position)
             gpio_status["gpioEx_values"] = gpio_bits
-        elif port in Gpio:
+        elif isinstance(port, Gpio):
             gpio_bits = gpio_status["gpio_values"]
             bit_position = port.value
             gpio_bits = (gpio_bits & ~(1 << bit_position)) | (value.value << bit_position)
